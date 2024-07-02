@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional
 
 from ..extras.constants import DATA_CONFIG
-from ..extras.misc import use_modelscope
+from ..extras.misc import use_openmind, use_modelscope
 
 
 if TYPE_CHECKING:
@@ -96,7 +96,12 @@ def get_dataset_list(data_args: "DataArguments") -> List["DatasetAttr"]:
     dataset_list: List[DatasetAttr] = []
     for name in dataset_names:
         if dataset_info is None:
-            load_from = "ms_hub" if use_modelscope() else "hf_hub"
+            if use_openmind():
+                load_from = "om_hub"
+            if use_modelscope():
+                load_from = "ms_hub"
+            if load_from:
+                load_from = "hf_hub"
             dataset_attr = DatasetAttr(load_from, dataset_name=name)
             dataset_list.append(dataset_attr)
             continue
@@ -104,11 +109,14 @@ def get_dataset_list(data_args: "DataArguments") -> List["DatasetAttr"]:
         if name not in dataset_info:
             raise ValueError("Undefined dataset {} in {}.".format(name, DATA_CONFIG))
 
+        has_om_url = "om_hub_url" in dataset_info[name]
         has_hf_url = "hf_hub_url" in dataset_info[name]
         has_ms_url = "ms_hub_url" in dataset_info[name]
 
-        if has_hf_url or has_ms_url:
-            if (use_modelscope() and has_ms_url) or (not has_hf_url):
+        if has_om_url or has_hf_url or has_ms_url:
+            if (use_openmind() and has_om_url) or (not has_hf_url):
+                dataset_attr = DatasetAttr("om_hub", dataset_name=dataset_info[name]["om_hub_url"])
+            elif (use_modelscope() and has_ms_url) or (not has_hf_url):
                 dataset_attr = DatasetAttr("ms_hub", dataset_name=dataset_info[name]["ms_hub_url"])
             else:
                 dataset_attr = DatasetAttr("hf_hub", dataset_name=dataset_info[name]["hf_hub_url"])

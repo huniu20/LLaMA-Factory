@@ -49,7 +49,7 @@ def load_single_dataset(
 ) -> Union["Dataset", "IterableDataset"]:
     logger.info("Loading dataset {}...".format(dataset_attr))
     data_path, data_name, data_dir, data_files = None, None, None, None
-    if dataset_attr.load_from in ["hf_hub", "ms_hub"]:
+    if dataset_attr.load_from in ["om_hub", "hf_hub", "ms_hub"]:
         data_path = dataset_attr.dataset_name
         data_name = dataset_attr.subset
         data_dir = dataset_attr.folder
@@ -80,7 +80,26 @@ def load_single_dataset(
     else:
         raise NotImplementedError("Unknown load type: {}.".format(dataset_attr.load_from))
 
-    if dataset_attr.load_from == "ms_hub":
+    if dataset_attr.load_from == "om_hub":
+        try:
+            import openmind_hub
+            from openmind.omdatasets import OmDataset
+            
+            OM_DATASETS_CACHE = os.path.join(openmind_hub.OM_HOME, "datasets")
+            cache_dir = model_args.cache_dir or OM_DATASETS_CACHE
+            dataset = OmDataset.load_dataset(
+                path=data_path,
+                name=data_name,
+                data_dir=data_dir,
+                data_files=data_files,
+                split=data_args.split,
+                cache_dir=cache_dir,
+                token=model_args.ms_hub_token,
+                use_streaming=(data_args.streaming and (dataset_attr.load_from != "file")),
+            )
+        except ImportError:
+            raise ImportError("Please install openmind via `pip install openmind -U`")
+    elif dataset_attr.load_from == "ms_hub":
         try:
             from modelscope import MsDataset
             from modelscope.utils.config_ds import MS_DATASETS_CACHE
