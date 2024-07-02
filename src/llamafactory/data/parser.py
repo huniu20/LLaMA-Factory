@@ -100,7 +100,7 @@ def get_dataset_list(data_args: "DataArguments") -> List["DatasetAttr"]:
                 load_from = "om_hub"
             if use_modelscope():
                 load_from = "ms_hub"
-            if load_from:
+            if load_from is None:
                 load_from = "hf_hub"
             dataset_attr = DatasetAttr(load_from, dataset_name=name)
             dataset_list.append(dataset_attr)
